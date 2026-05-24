@@ -20,6 +20,7 @@ export default defineBuildConfig({
         './src/db/pgvector.ts',
         // Embeddings
         './src/embeddings/openai.ts',
+        './src/embeddings/cloudflare-workers-ai.ts',
         './src/embeddings/google.ts',
         './src/embeddings/ollama.ts',
         './src/embeddings/transformers-js.ts',

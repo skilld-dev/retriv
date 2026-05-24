@@ -1,32 +1,45 @@
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@4.20260524.1'
 shellEmulator: true
 
 trustPolicy: no-downgrade
 
 catalog:
-  '@ai-sdk/cohere': ^3.0.27
-  '@ai-sdk/google': ^3.0.53
-  '@ai-sdk/mistral': ^3.0.27
-  '@ai-sdk/openai': ^3.0.48
-  '@antfu/eslint-config': ^7.7.3
+  '@ai-sdk/cohere': ^3.0.36
+  '@ai-sdk/google': ^3.0.79
+  '@ai-sdk/mistral': ^3.0.37
+  '@ai-sdk/openai': ^3.0.65
+  '@antfu/eslint-config': ^9.0.0
   '@arethetypeswrong/cli': ^0.18.2
-  '@cloudflare/workers-types': ^4.20260329.1
-  '@huggingface/transformers': ^3.8.1
-  '@libsql/client': ^0.17.2
-  '@types/node': ^25.5.0
+  '@cloudflare/workers-types': ^4.20260524.1
+  '@huggingface/transformers': ^4.2.0
+  '@libsql/client': ^0.17.3
+  '@types/node': ^25.9.1
   '@types/pg': ^8.20.0
   '@upstash/vector': ^1.2.3
-  '@vitest/coverage-v8': ^4.1.2
-  ai: ^6.0.141
+  '@vitest/coverage-v8': ^4.1.7
+  ai: ^6.0.191
   ai-sdk-provider-gemini-cli: ^2.0.1
-  bumpp: ^11.0.1
-  eslint: ^10.1.0
-  obuild: ^0.4.32
+  bumpp: ^11.1.0
+  eslint: ^10.4.0
+  obuild: ^0.4.36
   osgrep: ^0.5.16
-  pg: ^8.20.0
-  sqlite-vec: ^0.1.8
-  typescript: ^6.0.2
-  vitest: ^4.1.2
-  zod: ^4.3.6
+  pg: ^8.21.0
+  sqlite-vec: ^0.1.9
+  typescript: ^6.0.3
+  vitest: ^4.1.7
+  zod: ^4.4.3
 ignoredBuiltDependencies:
   - better-sqlite3
   - esbuild
+allowBuilds:
+  esbuild: set this to true or false
+  lmdb: set this to true or false
+  msgpackr-extract: set this to true or false
+  node-pty: set this to true or false
+  onnxruntime-node: set this to true or false
+  protobufjs: set this to true or false
+  sharp: set this to true or false
+  simsimd: set this to true or false
+  tree-sitter-bash: set this to true or false
+  usearch: set this to true or false

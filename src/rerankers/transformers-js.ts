@@ -40,7 +40,8 @@ export function crossEncoder(config: CrossEncoderConfig = {}): RerankerConfig {
           return results
 
         const scored = await Promise.all(withContent.map(async (result) => {
-          const inputs = await tokenizer(query, result.content, {
+          const inputs = await tokenizer(query, {
+            text_pair: result.content,
             padding: true,
             truncation: true,
             max_length: 512,

@@ -2,7 +2,7 @@
   "name": "retriv",
   "type": "module",
   "version": "0.13.2",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.2.2",
   "description": "Hybrid search for TypeScript/JavaScript projects with AST-aware chunking.",
   "author": {
     "name": "Harlan Wilton",
@@ -60,6 +60,10 @@
     "./embeddings/openai": {
       "types": "./dist/embeddings/openai.d.mts",
       "import": "./dist/embeddings/openai.mjs"
+    },
+    "./embeddings/cloudflare-workers-ai": {
+      "types": "./dist/embeddings/cloudflare-workers-ai.d.mts",
+      "import": "./dist/embeddings/cloudflare-workers-ai.mjs"
     },
     "./embeddings/google": {
       "types": "./dist/embeddings/google.d.mts",
@@ -140,7 +144,7 @@
     "@libsql/client": "^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0",
     "@upstash/vector": "^1.0.0",
     "ai": "^4.0.0 || ^5.0.0 || ^6.0.0",
-    "ollama-ai-provider-v2": "^1.0.0",
+    "ollama-ai-provider-v2": "^1.0.0 || ^2.0.0 || ^3.0.0",
     "pg": "^8.0.0",
     "sqlite-vec": "^0.1.0-alpha.0",
     "typescript": "^5.0.0 || ^6.0.0-0"
