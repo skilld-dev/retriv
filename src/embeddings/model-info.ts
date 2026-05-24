@@ -3,6 +3,7 @@
  */
 export type EmbeddingPreset
   = | 'openai'
+    | 'cloudflare-workers-ai'
     | 'google'
     | 'mistral'
     | 'cohere'
@@ -14,6 +15,7 @@ export type EmbeddingPreset
  */
 export const DEFAULT_MODELS: Record<EmbeddingPreset, { model: string, dimensions: number }> = {
   'openai': { model: 'text-embedding-3-small', dimensions: 1536 },
+  'cloudflare-workers-ai': { model: '@cf/baai/bge-small-en-v1.5', dimensions: 384 },
   'google': { model: 'text-embedding-004', dimensions: 768 },
   'mistral': { model: 'mistral-embed', dimensions: 1024 },
   'cohere': { model: 'embed-english-v3.0', dimensions: 1024 },
@@ -45,6 +47,10 @@ export const MODEL_DIMENSIONS: Record<string, number> = {
   'all-minilm': 384,
   'snowflake-arctic-embed': 1024,
   // BGE family
+  '@cf/baai/bge-small-en-v1.5': 384,
+  '@cf/baai/bge-base-en-v1.5': 768,
+  '@cf/baai/bge-large-en-v1.5': 1024,
+  '@cf/baai/bge-m3': 1024,
   'bge-small-en-v1.5': 384,
   'bge-base-en-v1.5': 768,
   'bge-large-en-v1.5': 1024,
@@ -72,6 +78,10 @@ export const MODEL_MAX_TOKENS: Record<string, number> = {
   // Ollama / local
   'nomic-embed-text': 8192,
   // BGE family
+  '@cf/baai/bge-small-en-v1.5': 512,
+  '@cf/baai/bge-base-en-v1.5': 512,
+  '@cf/baai/bge-large-en-v1.5': 512,
+  '@cf/baai/bge-m3': 8192,
   'bge-small-en-v1.5': 512,
   'bge-base-en-v1.5': 512,
   'bge-large-en-v1.5': 512,
