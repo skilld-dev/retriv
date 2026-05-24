@@ -27,18 +27,12 @@ jobs:
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Force Set pnpm Registry
-        run: pnpm config set registry https://registry.npmjs.org
+      - name: Install Dependencies
+        run: pnpm install
 
       - run: npx changelogithub
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - name: Install Dependencies
-        run: pnpm i
-
-      - name: Pack with pnpm
-        run: pnpm pack
-
-      - name: Publish with npm (OIDC)
-        run: npm publish retriv-*.tgz --access public --provenance
+      - name: Publish
+        run: npm publish --access public --provenance
