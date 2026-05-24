@@ -18,7 +18,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/harlan-zw/retriv"
+    "url": "https://github.com/skilld-dev/retriv"
   },
   "exports": {
     ".": {
