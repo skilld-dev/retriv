@@ -3,6 +3,9 @@ minimumReleaseAgeExclude:
 shellEmulator: true
 
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar
+  - undici-types
 
 catalog:
   '@ai-sdk/cohere': ^3.0.36
@@ -33,13 +36,13 @@ ignoredBuiltDependencies:
   - better-sqlite3
   - esbuild
 allowBuilds:
-  esbuild: set this to true or false
-  lmdb: set this to true or false
-  msgpackr-extract: set this to true or false
-  node-pty: set this to true or false
-  onnxruntime-node: set this to true or false
-  protobufjs: set this to true or false
-  sharp: set this to true or false
-  simsimd: set this to true or false
-  tree-sitter-bash: set this to true or false
-  usearch: set this to true or false
+  esbuild: true
+  lmdb: false
+  msgpackr-extract: false
+  node-pty: false
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false
+  simsimd: false
+  tree-sitter-bash: false
+  usearch: false
