@@ -37,4 +37,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - run: pnpm publish --access public --no-git-checks --provenance
+      - name: Pack with pnpm
+        run: pnpm pack
+
+      - name: Publish with npm (OIDC)
+        run: npm publish retriv-*.tgz --access public --provenance
