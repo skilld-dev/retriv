@@ -1,6 +1,6 @@
 import type { SearchProvider } from '../../src/types'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
-import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { sqliteFts } from '../../src/db/sqlite-fts'
 import { sqliteVec } from '../../src/db/sqlite-vec'
@@ -14,7 +14,7 @@ interface AgentResult {
   timeMs: number
 }
 
-const gemini = createGeminiProvider({ authType: 'oauth-personal' })
+const gemini = createGoogleGenerativeAI()
 
 async function askGeminiWithRetrieval(question: string, context: string): Promise<AgentResult> {
   const prompt = `Answer this question in ONE sentence:

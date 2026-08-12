@@ -36,7 +36,7 @@ export function openai(options: OpenAIEmbeddingOptions = {}): EmbeddingConfig {
         return cached
 
       const openaiClient = createOpenAI({ apiKey, baseURL: baseUrl })
-      const embeddingModel = openaiClient.textEmbeddingModel(model)
+      const embeddingModel = openaiClient.embeddingModel(model)
 
       // Use known dimensions or probe with test embedding
       let dimensions = getModelDimensions(model)

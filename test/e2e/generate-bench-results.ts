@@ -7,15 +7,15 @@
 import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
-import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli'
 import { codeChunker } from '../../src/chunkers/typescript'
 import { sqlite } from '../../src/db/sqlite'
 import { transformersJs } from '../../src/embeddings/transformers-js'
 import { crossEncoder } from '../../src/rerankers/transformers-js'
 import { createRetriv } from '../../src/retriv'
 
-const gemini = createGeminiProvider({ authType: 'oauth-personal' })
+const gemini = createGoogleGenerativeAI()
 
 const VITE_DIST = join(import.meta.dirname, '../../node_modules/vite/dist')
 const OUT_FILE = join(import.meta.dirname, 'bench-results.json')
@@ -135,7 +135,8 @@ async function judgeRelevance(query: string, results: Result[]): Promise<Result[
   }).join('\n---\n')
 
   const { text } = await generateText({
-    model: gemini('gemini-2.0-flash', { maxOutputTokens: 256 }),
+    model: gemini('gemini-2.0-flash'),
+    maxOutputTokens: 256,
     prompt: `You are judging code search relevance. Given the search query and code results, output ONLY a JSON array of indices (0-based) that are relevant to the query.
 
 A result is relevant if the code snippet is meaningfully related to the query topic — not just containing a common word by coincidence.

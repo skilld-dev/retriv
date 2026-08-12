@@ -36,7 +36,7 @@ export function cohere(options: CohereEmbeddingOptions = {}): EmbeddingConfig {
         return cached
 
       const cohereClient = createCohere({ apiKey, baseURL: baseUrl })
-      const embeddingModel = cohereClient.textEmbeddingModel(model)
+      const embeddingModel = cohereClient.embeddingModel(model)
 
       let dimensions = getModelDimensions(model)
       if (!dimensions) {

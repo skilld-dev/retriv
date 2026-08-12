@@ -8,29 +8,29 @@ trustPolicyExclude:
   - undici-types
 
 catalog:
-  '@ai-sdk/cohere': ^3.0.36
-  '@ai-sdk/google': ^3.0.79
-  '@ai-sdk/mistral': ^3.0.37
-  '@ai-sdk/openai': ^3.0.65
-  '@antfu/eslint-config': ^9.0.0
-  '@arethetypeswrong/cli': ^0.18.2
-  '@cloudflare/workers-types': ^4.20260524.1
+  '@ai-sdk/cohere': ^4.0.26
+  '@ai-sdk/google': ^4.0.41
+  '@ai-sdk/mistral': ^4.0.28
+  '@ai-sdk/openai': ^4.0.37
+  '@antfu/eslint-config': ^9.3.0
+  '@arethetypeswrong/cli': ^0.18.5
+  '@cloudflare/workers-types': ^5.20260811.1
   '@huggingface/transformers': ^4.2.0
-  '@libsql/client': ^0.17.3
-  '@types/node': ^25.9.1
-  '@types/pg': ^8.20.0
+  '@libsql/client': ^0.17.4
+  '@types/node': ^26.2.0
+  '@types/pg': ^8.21.0
   '@upstash/vector': ^1.2.3
-  '@vitest/coverage-v8': ^4.1.7
-  ai: ^6.0.191
-  ai-sdk-provider-gemini-cli: ^2.0.1
-  bumpp: ^11.1.0
-  eslint: ^10.4.0
-  obuild: ^0.4.36
+  '@vitest/coverage-v8': ^4.1.10
+  ai: ^7.0.59
+  bumpp: ^12.2.0
+  eslint: ^10.8.1
+  obuild: ^0.4.38
+  ollama-ai-provider-v2: ^4.0.1
   osgrep: ^0.5.16
-  pg: ^8.21.0
+  pg: ^8.23.0
   sqlite-vec: ^0.1.9
-  typescript: ^6.0.3
-  vitest: ^4.1.7
+  typescript: 6.0.3
+  vitest: ^4.1.10
   zod: ^4.4.3
 ignoredBuiltDependencies:
   - better-sqlite3

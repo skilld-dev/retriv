@@ -36,7 +36,7 @@ export function google(options: GoogleEmbeddingOptions = {}): EmbeddingConfig {
         return cached
 
       const googleClient = createGoogleGenerativeAI({ apiKey, baseURL: baseUrl })
-      const embeddingModel = googleClient.textEmbeddingModel(model)
+      const embeddingModel = googleClient.embeddingModel(model)
 
       let dimensions = getModelDimensions(model)
       if (!dimensions) {

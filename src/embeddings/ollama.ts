@@ -37,7 +37,7 @@ export function ollama(options: OllamaEmbeddingOptions = {}): EmbeddingConfig {
       const ollamaClient = createOllama({
         baseURL: ollamaBaseUrl.endsWith('/api') ? ollamaBaseUrl : `${ollamaBaseUrl}/api`,
       })
-      const embeddingModel: any = ollamaClient.textEmbeddingModel(model)
+      const embeddingModel = ollamaClient.embedding(model)
 
       let dimensions = getModelDimensions(model)
       if (!dimensions) {

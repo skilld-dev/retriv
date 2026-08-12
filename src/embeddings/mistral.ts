@@ -36,7 +36,7 @@ export function mistral(options: MistralEmbeddingOptions = {}): EmbeddingConfig 
         return cached
 
       const mistralClient = createMistral({ apiKey, baseURL: baseUrl })
-      const embeddingModel = mistralClient.textEmbeddingModel(model)
+      const embeddingModel = mistralClient.embeddingModel(model)
 
       let dimensions = getModelDimensions(model)
       if (!dimensions) {
