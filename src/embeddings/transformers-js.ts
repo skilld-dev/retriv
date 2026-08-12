@@ -1,3 +1,4 @@
+import type { DeviceType } from '@huggingface/transformers'
 import type { EmbeddingConfig, EmbeddingProvider, ResolvedEmbedding } from '../types'
 import { rm } from 'node:fs/promises'
 import { env, pipeline } from '@huggingface/transformers'
@@ -17,6 +18,8 @@ export interface TransformersEmbeddingOptions {
   model?: string
   /** Embedding dimensions (auto-detected for known models) */
   dimensions?: number
+  /** Device used to run the model. Omit it to use transformers.js defaults. */
+  device?: DeviceType
   /** Called with model download progress (initiate → download → progress → done → ready) */
   onProgress?: (info: TransformersProgressInfo) => void
 }
@@ -65,6 +68,8 @@ export function transformersJs(options: TransformersEmbeddingOptions = {}): Embe
       const pipelineOpts: Record<string, unknown> = { dtype: 'fp32' }
       if (options.onProgress)
         pipelineOpts.progress_callback = options.onProgress
+      if (options.device)
+        pipelineOpts.device = options.device
 
       const extractor = await pipeline('feature-extraction', model, pipelineOpts)
         .catch(async (err) => {
