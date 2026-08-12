@@ -122,7 +122,7 @@ export function getModelMaxTokens(model: string): number | undefined {
 const MODEL_MAPPINGS: Record<string, Record<string, string>> = {
   'transformers.js': {
     'bge-base-en-v1.5': 'Xenova/bge-base-en-v1.5',
-    'bge-large-en-v1.5': 'onnx-community/bge-large-en-v1.5',
+    'bge-large-en-v1.5': 'Xenova/bge-large-en-v1.5',
     'bge-small-en-v1.5': 'Xenova/bge-small-en-v1.5',
     'bge-m3': 'Xenova/bge-m3',
     'all-MiniLM-L6-v2': 'Xenova/all-MiniLM-L6-v2',

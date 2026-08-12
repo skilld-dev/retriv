@@ -324,6 +324,20 @@ ollama({ model: 'nomic-embed-text' })
 transformersJs({ model: 'Xenova/all-MiniLM-L6-v2' })
 ```
 
+### Transformers.js runtime options
+
+Retriv passes `device` and `dtype` to Transformers.js. Retriv uses `fp32` when
+you omit `dtype`. Transformers.js selects the device when you omit `device`.
+
+```ts
+transformersJs({ model: 'bge-base-en-v1.5', device: 'webgpu' })
+
+transformersJs({ model: 'bge-base-en-v1.5', dtype: 'q8' })
+```
+
+Support depends on your Transformers.js version and runtime. Test the selected
+combination on the target system.
+
 ## API
 
 ### SearchProvider
