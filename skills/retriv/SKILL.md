@@ -5,13 +5,13 @@ description: Adds and debugs hybrid BM25 plus vector search in TypeScript and Ja
 
 # retriv
 
-retriv 0.15.0 builds keyword (SQLite FTS5 BM25), vector, or hybrid search behind one `createRetriv()` call, with optional chunking, reranking, and metadata filters. Every driver, embedding provider, chunker, and reranker is a subpath import with its own optional peer.
+retriv 0.15.0 builds keyword (SQLite FTS5 BM25), vector, or hybrid search behind one `createRetriv()` call, with optional chunking, reranking, and metadata filters. Each driver, embedder, chunker, and reranker is a subpath import with an optional peer.
 
 ## Setup
 
-Install `retriv` plus the peers of the subpaths you import. pnpm prints `ERR_PNPM_IGNORED_BUILDS` for `onnxruntime-node`; Transformers.js works without that build script.
+Install `retriv` and the peers of the subpaths you import. With pnpm 12, adding `@huggingface/transformers` exits 1 with `ERR_PNPM_IGNORED_BUILDS` (`onnxruntime-node`, `protobufjs`), but the install works. To silence it, set both to `false` under `allowBuilds` in `pnpm-workspace.yaml`.
 
-| Import | Kind | Peers | Runtime |
+| Import | Provides | Peers | Runtime |
 |---|---|---|---|
 | `retriv/db/sqlite` | hybrid in one file | `sqlite-vec` | Node 22.16+ or 24+ |
 | `retriv/db/sqlite-fts` | keyword | none | Node 22.16+ or 24+ |
@@ -19,8 +19,10 @@ Install `retriv` plus the peers of the subpaths you import. pnpm prints `ERR_PNP
 | `retriv/db/libsql`, `pgvector`, `upstash` | vector | `@libsql/client`, `pg`, `@upstash/vector` | Node |
 | `retriv/db/cloudflare` | vector | a Vectorize binding | Workers |
 | `retriv/chunkers/typescript`, `auto` | AST chunks | `typescript@^6` | Node |
+| `retriv/rerankers/transformers-js` | `crossEncoder()` | `@huggingface/transformers` | Node |
+| `retriv/rerankers/cohere`, `jina` | `cohereReranker()`, `jinaReranker()` | `apiKey`, or `COHERE_API_KEY`, `JINA_API_KEY` | Node |
 
-Embeddings: `transformers-js` needs `@huggingface/transformers`; `openai`, `google`, `mistral`, `cohere` need `@ai-sdk/<name>` and `ai`; `ollama` needs `ollama-ai-provider-v2` and `ai`; `cloudflare-workers-ai` needs only `env.AI`. Upstash embeds server side and takes no `embeddings`.
+Embeddings: `transformers-js` needs `@huggingface/transformers`; `openai`, `google`, `mistral`, `cohere` need `@ai-sdk/<name>` and `ai`; `ollama` needs `ollama-ai-provider-v2` and `ai`.
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -31,7 +33,7 @@ import { transformersJs } from 'retriv/embeddings/transformers-js'
 
 const search = await createRetriv({
   driver: sqlite({ path: './.search/index.db', embeddings: transformersJs() }),
-  chunking: autoChunker(), // ids ending .ts/.js/.mjs... use the AST chunker, the rest split as markdown
+  chunking: autoChunker(), // .ts and .js ids use the AST chunker; the rest split as markdown
 })
 
 await search.index([
@@ -47,11 +49,11 @@ await search.close?.()
 
 ## Automatic behaviour
 
-- `search()` rewrites the query before every driver sees it: `getUserName` becomes `get User Name getUserName`. Rerankers get the original query. To skip it, call the driver directly.
-- Chunking is off until you pass `chunking`. A document that yields one chunk keeps its own id; more chunks are stored as `<id>#chunk-<n>` and carry the parent's metadata. `index()` returns the stored row count, chunks included.
-- `returnMetadata` defaults to `true` on every driver.
-- `categories` writes `metadata.category` into the document objects you pass, then fans each search out per category and fuses with RRF.
-- `rerank` forces `returnContent` on, strips it afterwards, and fetches `limit * 3` candidates only when you set `limit`.
+- `search()` rewrites the query for every driver: `getUserName` becomes `get User Name getUserName`. Rerankers get the original query.
+- Chunking is off until you pass `chunking`. A document with one chunk keeps its id; more chunks are stored as `<id>#chunk-<n>` with the parent's metadata. `index()` resolves to `{ count }`, chunks included. Without chunking, the default `bge-small-en-v1.5` embeds only the first 512 tokens.
+- `returnMetadata` defaults to `true`; `false` also removes `_chunk`.
+- `categories` writes `metadata.category` into the documents you pass, then searches each category and fuses with RRF. The seen categories live in memory: after a restart, search is unsplit until the process indexes two categories.
+- `rerank` forces `returnContent` on, strips it afterwards, and fetches `limit * 3` candidates only when you set `limit`. Rerankers score the 5-line snippet, so pair `rerank` with small chunks.
 
 ## Common tasks
 
@@ -95,7 +97,7 @@ interface Env { VECTORIZE: Vectorize, AI: Ai }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // retriv types the binding methods as returning Promise<void>, so the workers-types binding needs a cast
+    // retriv types these methods as Promise<void>, so the workers-types binding needs a cast
     const binding = env.VECTORIZE as unknown as CloudflareConfig['binding']
     const search = await createRetriv({
       driver: cloudflare({ binding, embeddings: cloudflareWorkersAi({ ai: env.AI }) }),
@@ -109,20 +111,15 @@ export default {
 
 ## Traps
 
-- **TypeScript 7 breaks code chunking.** `pnpm add typescript` installs 7.x, outside the `^5 || ^6` peer range. `codeChunker` and `autoChunker` then throw `Cannot read properties of undefined (reading 'TS')`. Install `typescript@^6`. Without TypeScript, `autoChunker` throws on the first code document.
-- **Node floor.** On Node 22.14 the SQLite drivers with FTS5 fail with `no such module: fts5`. Node 22.16 enabled FTS5. Before 22.13, `node:sqlite` needs a flag and retriv reports `node:sqlite not available`.
-- **Scores are not similarities.** `sqlite`, composed drivers, and `categories` return RRF scores, about 0.01 to 0.05. Other drivers use their own scale, and a reranker replaces scores with its own 0 to 1 value. A driver with vectors returns up to `limit` rows even for a nonsense query. Never threshold on score.
-- **`codeChunker` skips text.** Text between chunks is dropped: comments and JSDoc of the next declaration, the `export const` keyword of a variable, and statements after the last declaration. A declaration larger than `maxChunkSize` stays one chunk. Code chunks never get `range`, `scope`, or `context`; use `lineRange`. To index every line, use `markdownChunker()` for code.
-- **Long text is cut by the model.** Embeddings ignore tokens past the model window (512 for the default `bge-small-en-v1.5`). Chunk long documents, or vector search only sees the start.
-- **`returnMetadata: false` also removes `_chunk`.** retriv rebuilds `_chunk` from stored metadata.
-- **Categories live in memory.** A new process searches unsplit until it indexes documents from two categories. Filter on `category` yourself after a restart.
-- **Filters differ by driver.** In SQL drivers, `$ne` and `$nin` drop documents that lack the field, and `a.b` reads nested JSON. In Upstash and Cloudflare, `$ne` keeps them and `a.b` matches nothing. Field names allow only letters, digits, `_`, and `.`; `my-field` throws.
-- **One model per index.** The vector table takes its dimensions from the first open. Another model on the same file throws `Dimension mismatch`. `cachedEmbeddings` hashes only the text, so give each model its own storage.
-- **Do not pass `dimensions` to `transformersJs()` for a known model.** A wrong value slices the output into silent garbage vectors.
-- **pgvector builds an empty ivfflat index.** The driver creates it when it opens, before rows exist. Searches then return far fewer rows than `limit`, and filtered searches often return none. After the first load, run `REINDEX INDEX <table>_embedding_idx` (default `vectors_embedding_idx`).
-- **Cloudflare driver:** `remove()` with chunking and `clear()` throw. Each vector stores its text in metadata. Cloudflare documents a 10 KiB metadata limit per vector, so chunk large documents. `retriv/embeddings/cached` imports `node:crypto` and needs `nodejs_compat`.
-- **Google embeddings read `GOOGLE_GENERATIVE_AI_API_KEY`**, not `GOOGLE_API_KEY` as the option comment says.
-- `remove`, `listIds`, `clear`, and `close` are optional on the returned type; call them with `?.`.
+- **TypeScript 7 breaks code chunking.** `pnpm add typescript` installs 7.x, outside the peer range, and both code chunkers throw `Cannot read properties of undefined (reading 'TS')`. Install `typescript@^6`. Without TypeScript, `autoChunker` throws on the first code document.
+- **Node floor.** Below the Node versions in the table, SQLite drivers fail with `no such module: fts5` (22.14, 22.15) or `node:sqlite not available` (before 22.13).
+- **Scores are not similarities.** `sqlite`, composed drivers, `categories`, and multi-token `sqlite-fts` queries return RRF scores, about 0.005 to 0.05; `search()` makes `getUserName` multi-token. A single-token `sqlite-fts` hit scores near 1; a reranker sets 0 to 1. A driver with vectors returns up to `limit` rows even for a nonsense query. Never threshold on score.
+- **`codeChunker` skips text.** At each chunk boundary it drops the next declaration's comments and JSDoc, and a variable's `export const`. It also drops statements after the last declaration. A declaration over `maxChunkSize` stays one chunk, and code chunks get no `range`, `scope`, or `context`. To index every line, chunk code with `markdownChunker()`.
+- **Filters differ by driver.** SQL drivers drop documents that lack the field on `$ne` and `$nin`, and throw on a field name outside letters, digits, `_`, and `.`. The SQLite and libsql drivers read `a.b` as nested JSON. pgvector reads `a.b` as one literal key and never matches a boolean; flatten nested fields and store booleans as strings.
+- **Upstash and Cloudflare filter in memory** over the `limit * 4` nearest vectors, so a selective filter can return few rows or none; raise `limit`. There, `$ne` keeps a document without the field but drops one without metadata, `a.b` never matches, and a bad field name returns `[]`.
+- **One model per index.** The vector table takes its dimensions from the first open; another model on the same file throws `Dimension mismatch`. `cachedEmbeddings` hashes only the text, so give each model its own storage. Never pass `dimensions` to `transformersJs()` for a known model; a wrong value gives silent garbage vectors.
+- **pgvector recall is low by default.** The driver builds ivfflat (`lists = 100`) before rows exist, and `ivfflat.probes` is 1: recall@10 is near 0.2, and about 0.44 after `REINDEX`. Replace it with HNSW under the same name, which the driver's `CREATE INDEX IF NOT EXISTS` keeps: `DROP INDEX vectors_embedding_idx; CREATE INDEX vectors_embedding_idx ON vectors USING hnsw (embedding vector_cosine_ops)`. Use `<table>_embedding_idx` and the opclass for `metric`. To keep ivfflat, run `REINDEX`, then `ALTER DATABASE <db> SET ivfflat.probes = 10`.
+- **Cloudflare:** `remove()` with chunking and `clear()` throw. Each vector keeps its text in metadata, which Cloudflare caps at 10 KiB, so chunk large documents. `retriv/embeddings/cached` needs `nodejs_compat`.
 
 ## Version limits
 
@@ -130,8 +127,7 @@ export default {
 |---|---|---|
 | chunking on by default, `chunking: { chunker }` | opt-in `chunking: markdownChunker()` | 0.7.0 |
 | `retriv/chunkers/code` with `code-chunk` | `retriv/chunkers/typescript` with `typescript` | 0.8.1 |
-| `retriv/embeddings/transformers`, `transformers()` | `retriv/embeddings/transformers-js`, `transformersJs()` | 0.1.0 |
 
 ## Config
 
-Options for each driver, chunker, embedding provider, and reranker are typed on its factory. The [README](https://github.com/skilld-dev/retriv#readme) lists them.
+Factory options are typed in `node_modules/retriv/dist/<subpath>.d.mts`, such as `dist/db/pgvector.d.mts`. The README does not list them all.
