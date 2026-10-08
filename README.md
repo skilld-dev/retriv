@@ -3,6 +3,13 @@
 [![npm version](https://img.shields.io/npm/v/retriv?color=yellow)](https://npmjs.com/package/retriv)
 [![npm downloads](https://img.shields.io/npm/dm/retriv?color=yellow)](https://npm.chart.dev/retriv)
 [![license](https://img.shields.io/github/license/harlan-zw/retriv?color=yellow)](https://github.com/harlan-zw/retriv/blob/main/LICENSE)
+<a href="https://skilld.dev/gh/skilld-dev/retriv">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://skilld.dev/b/skilld-dev/retriv?theme=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://skilld.dev/b/skilld-dev/retriv?theme=light">
+    <img alt="Skill repository on skilld.dev" src="https://skilld.dev/b/skilld-dev/retriv?theme=light">
+  </picture>
+</a>
 
 > Hybrid search for TypeScript/JavaScript projects. AST-aware chunking, camelCase tokenization, local-first with optional cloud backends.
 
@@ -41,10 +48,7 @@ pnpm add retriv
 ```
 
 > [!TIP]
-> Generate an Agent Skill for this package using [skilld](https://github.com/harlan-zw/skilld):
-> ```bash
-> npx skilld add retriv
-> ```
+> Using an AI agent? Get the retriv Skill on [skilld.dev/gh/skilld-dev/retriv](https://skilld.dev/gh/skilld-dev/retriv).
 
 ## Quick Start - Local Hybrid Search
 
