@@ -57,7 +57,7 @@ await search.close?.()
 
 ## Common tasks
 
-`returnContent: true` returns a 5-line snippet around the best matching line, not the stored text. Keep your own copy and re-index changed documents through `remove()`:
+`returnContent: true` returns a 5-line snippet around the best matching line, not the stored text. Keep your own copy. `index()` with an existing id replaces that document, old chunks included:
 
 ```ts
 import type { Document } from 'retriv'
@@ -69,7 +69,6 @@ const docs = new Map<string, Document>()
 const search = await createRetriv({ driver: sqliteFts({ path: './.search/fts.db' }), chunking: markdownChunker() })
 
 export async function upsert(doc: Document): Promise<void> {
-  await search.remove?.([doc.id]) // index() alone leaves old <id>#chunk-<n> rows behind
   await search.index([doc])
   docs.set(doc.id, doc)
 }
@@ -119,7 +118,7 @@ export default {
 - **Upstash and Cloudflare filter in memory** over the `limit * 4` nearest vectors, so a selective filter can return few rows or none; raise `limit`. There, `$ne` keeps a document without the field but drops one without metadata, `a.b` never matches, and a bad field name returns `[]`.
 - **One model per index.** The vector table takes its dimensions from the first open; another model on the same file throws `Dimension mismatch`. `cachedEmbeddings` hashes only the text, so give each model its own storage. Never pass `dimensions` to `transformersJs()` for a known model; a wrong value gives silent garbage vectors.
 - **pgvector recall is low by default.** The driver builds ivfflat (`lists = 100`) before rows exist, and `ivfflat.probes` is 1: recall@10 is near 0.2, and about 0.44 after `REINDEX`. Replace it with HNSW under the same name, which the driver's `CREATE INDEX IF NOT EXISTS` keeps: `DROP INDEX vectors_embedding_idx; CREATE INDEX vectors_embedding_idx ON vectors USING hnsw (embedding vector_cosine_ops)`. Use `<table>_embedding_idx` and the opclass for `metric`. To keep ivfflat, run `REINDEX`, then `ALTER DATABASE <db> SET ivfflat.probes = 10`.
-- **Cloudflare:** `remove()` with chunking and `clear()` throw. Each vector keeps its text in metadata, which Cloudflare caps at 10 KiB, so chunk large documents. `retriv/embeddings/cached` needs `nodejs_compat`.
+- **Cloudflare:** `remove()` with chunking and `clear()` throw, and re-indexing a chunked document leaves its old `<id>#chunk-<n>` rows behind. Each vector keeps its text in metadata, which Cloudflare caps at 10 KiB, so chunk large documents. `retriv/embeddings/cached` needs `nodejs_compat`.
 
 ## Version limits
 
