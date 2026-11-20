@@ -150,6 +150,61 @@ describe('createRetriv', () => {
     expect(doc2Results.length).toBeGreaterThanOrEqual(1)
   })
 
+  it('replaces the old chunks when a chunked document is indexed again', async () => {
+    const retriv = await createRetriv({
+      driver: sqliteFts({ path: ':memory:' }),
+      chunking: markdownChunker({ chunkSize: 100, chunkOverlap: 0 }),
+    })
+    const long = Array.from({ length: 4 }, (_, i) => `## Part ${i}\n\nold wombat text ${i} ${'filler '.repeat(8)}`).join('\n\n')
+
+    await retriv.index([
+      { id: 'notes.md', content: long },
+      { id: 'other.md', content: long },
+    ])
+    await retriv.index([{ id: 'notes.md', content: 'new wombat text' }])
+
+    const ids = (await retriv.search('wombat', { limit: 20 })).map(r => r.id).sort()
+    expect(ids).toEqual(['notes.md', 'other.md#chunk-0', 'other.md#chunk-1', 'other.md#chunk-2', 'other.md#chunk-3'])
+  })
+
+  it('drops the unchunked row when a document grows into chunks', async () => {
+    const retriv = await createRetriv({
+      driver: sqliteFts({ path: ':memory:' }),
+      chunking: markdownChunker({ chunkSize: 100, chunkOverlap: 0 }),
+    })
+    const long = Array.from({ length: 3 }, (_, i) => `## Part ${i}\n\nnew wombat text ${i} ${'filler '.repeat(8)}`).join('\n\n')
+
+    await retriv.index([{ id: 'notes.md', content: 'old wombat text' }])
+    await retriv.index([{ id: 'notes.md', content: long }])
+
+    const ids = (await retriv.search('wombat', { limit: 20 })).map(r => r.id).sort()
+    expect(ids).toEqual(['notes.md#chunk-0', 'notes.md#chunk-1', 'notes.md#chunk-2'])
+  })
+
+  it('still indexes chunked documents on a driver without listIds()', async () => {
+    const indexed: string[] = []
+    const removed: string[] = []
+    const retriv = await createRetriv({
+      driver: {
+        async index(docs) {
+          indexed.push(...docs.map(d => d.id))
+          return { count: docs.length }
+        },
+        async search() { return [] },
+        async remove(ids) {
+          removed.push(...ids)
+          return { count: ids.length }
+        },
+      },
+      chunking: markdownChunker({ chunkSize: 100, chunkOverlap: 0 }),
+    })
+
+    await retriv.index([{ id: 'notes.md', content: 'new wombat text' }])
+
+    expect(indexed).toEqual(['notes.md'])
+    expect(removed).toEqual([])
+  })
+
   it('extracts snippets with highlights', async () => {
     const retriv = await createRetriv({
       driver: sqliteFts({ path: ':memory:' }),

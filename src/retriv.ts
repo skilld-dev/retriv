@@ -40,6 +40,14 @@ function applyRRF(resultSets: SearchResult[][]): SearchResult[] {
     .map(({ score, result }) => ({ ...result, score }))
 }
 
+const CHUNK_SEPARATOR = '#chunk-'
+
+/** Chunk rows are stored as `<parentId>#chunk-<n>`. */
+function parentIdOf(id: string): string {
+  const sep = id.indexOf(CHUNK_SEPARATOR)
+  return sep >= 0 ? id.substring(0, sep) : id
+}
+
 /**
  * Create a unified retrieval instance
  */
@@ -72,6 +80,21 @@ export async function createRetriv(options: RetrivOptions): Promise<SearchProvid
   const parentDocs = new Map<string, Document>()
   const seenCategories = new Set<string>()
   const categorize = options.categories
+  /** Stored ids, listed once per instance. */
+  let knownIds: Set<string> | undefined
+
+  /** Stored rows of the re-indexed documents that the new chunks no longer cover. */
+  async function staleIds(docs: Document[], prepared: Document[]): Promise<string[]> {
+    if (!knownIds) {
+      const lister = drivers.find(d => d.listIds)
+      if (!lister)
+        return []
+      knownIds = new Set(await lister.listIds!())
+    }
+    const parents = new Set(docs.map(d => d.id))
+    const fresh = new Set(prepared.map(d => d.id))
+    return Array.from(knownIds).filter(id => parents.has(parentIdOf(id)) && !fresh.has(id))
+  }
 
   async function prepareDocs(docs: Document[], onProgress?: IndexOptions['onProgress']): Promise<Document[]> {
     if (categorize) {
@@ -104,7 +127,7 @@ export async function createRetriv(options: RetrivOptions): Promise<SearchProvid
             : chunk.text
 
           chunkedDocs.push({
-            id: `${doc.id}#chunk-${i}`,
+            id: `${doc.id}${CHUNK_SEPARATOR}${i}`,
             content,
             metadata: {
               ...doc.metadata,
@@ -159,7 +182,16 @@ export async function createRetriv(options: RetrivOptions): Promise<SearchProvid
   return {
     async index(docs: Document[], options?: IndexOptions) {
       const prepared = await prepareDocs(docs, options?.onProgress)
+      const stale = chunker ? await staleIds(docs, prepared) : []
       const results = await Promise.all(drivers.map(d => d.index(prepared, options)))
+      if (stale.length)
+        await Promise.all(drivers.filter(d => d.remove).map(d => d.remove!(stale)))
+      if (knownIds) {
+        for (const id of stale)
+          knownIds.delete(id)
+        for (const doc of prepared)
+          knownIds.add(doc.id)
+      }
       return { count: results[0].count }
     },
 
@@ -227,18 +259,15 @@ export async function createRetriv(options: RetrivOptions): Promise<SearchProvid
           throw new Error('remove() with chunking requires a driver that implements listIds() — cloudflare does not support this')
         const allIds = await lister.listIds!()
         const idSet = new Set(ids)
-        removeIds = allIds.filter((id) => {
-          if (idSet.has(id))
-            return true
-          const sep = id.indexOf('#chunk-')
-          return sep >= 0 && idSet.has(id.substring(0, sep))
-        })
+        removeIds = allIds.filter(id => idSet.has(id) || idSet.has(parentIdOf(id)))
       }
       const results = await Promise.all(
         drivers.filter(d => d.remove).map(d => d.remove!(removeIds)),
       )
       for (const id of ids)
         parentDocs.delete(id)
+      for (const id of removeIds)
+        knownIds?.delete(id)
       return { count: results[0]?.count ?? 0 }
     },
 
@@ -247,17 +276,13 @@ export async function createRetriv(options: RetrivOptions): Promise<SearchProvid
       const ids = await driver?.listIds?.() ?? []
       if (!chunker)
         return ids
-      const parentIds = new Set<string>()
-      for (const id of ids) {
-        const sep = id.indexOf('#chunk-')
-        parentIds.add(sep >= 0 ? id.substring(0, sep) : id)
-      }
-      return Array.from(parentIds)
+      return Array.from(new Set(ids.map(parentIdOf)))
     },
 
     async clear() {
       await Promise.all(drivers.filter(d => d.clear).map(d => d.clear!()))
       parentDocs.clear()
+      knownIds?.clear()
     },
 
     async close() {
