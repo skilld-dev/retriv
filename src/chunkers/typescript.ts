@@ -286,6 +286,36 @@ interface ChunkRange {
   entities: ParsedDeclaration[]
 }
 
+/** Where the chunk for `node` may start, JSDoc included, never before `after`. */
+function chunkBoundary(node: TS.Node, sourceFile: TS.SourceFile, after: number): number {
+  const chain: TS.Node[] = []
+  for (let current: TS.Node = node; current !== sourceFile; current = current.parent)
+    chain.unshift(current)
+  for (const ancestor of chain) {
+    const comments = ts.getLeadingCommentRanges(sourceFile.text, ancestor.pos)
+    const start = comments?.[0]?.pos ?? ancestor.getStart(sourceFile)
+    if (start >= after)
+      return start
+  }
+  return node.getStart(sourceFile)
+}
+
+/** Lines are counted on the trimmed text, so `lineRange` matches `chunk.text`. */
+function toChunkRange(
+  sourceFile: TS.SourceFile,
+  start: number,
+  end: number,
+  entities: ParsedDeclaration[],
+): ChunkRange {
+  const slice = sourceFile.text.slice(start, end)
+  const textStart = start + slice.length - slice.trimStart().length
+  const textEnd = start + slice.trimEnd().length
+  const { line: lineStart } = sourceFile.getLineAndCharacterOfPosition(textStart)
+  const { line: lineEnd } = sourceFile.getLineAndCharacterOfPosition(Math.max(textStart, textEnd))
+  return { start, end, lineStart: lineStart + 1, lineEnd: lineEnd + 1, entities }
+}
+
+/** Chunks touch end to end, so no comment or statement falls between them. */
 function splitIntoChunks(
   content: string,
   declarations: ParsedDeclaration[],
@@ -320,75 +350,19 @@ function splitIntoChunks(
   let currentStart = filterImports ? importEnd : 0
   let currentEntities: ParsedDeclaration[] = []
 
-  // Group declarations into chunks
   for (const decl of declarations) {
-    const declSize = decl.end - decl.start
-    const currentSize = decl.end - currentStart
+    const boundary = chunkBoundary(decl.node, sourceFile, currentEntities.at(-1)?.end ?? currentStart)
 
-    if (currentSize > maxChunkSize && currentEntities.length > 0) {
-      // Flush current chunk
-      const lastEntity = currentEntities.at(-1)!
-      const { line: lineStart } = sourceFile.getLineAndCharacterOfPosition(currentStart)
-      const { line: lineEnd } = sourceFile.getLineAndCharacterOfPosition(lastEntity.end)
-
-      chunks.push({
-        start: currentStart,
-        end: lastEntity.end,
-        lineStart: lineStart + 1,
-        lineEnd: lineEnd + 1,
-        entities: currentEntities,
-      })
-
-      currentStart = decl.start
-      currentEntities = [decl]
-    }
-    else if (declSize > maxChunkSize) {
-      // Single large declaration - split it
-      if (currentEntities.length > 0) {
-        const lastEntity = currentEntities.at(-1)!
-        const { line: lineStart } = sourceFile.getLineAndCharacterOfPosition(currentStart)
-        const { line: lineEnd } = sourceFile.getLineAndCharacterOfPosition(lastEntity.end)
-        chunks.push({
-          start: currentStart,
-          end: lastEntity.end,
-          lineStart: lineStart + 1,
-          lineEnd: lineEnd + 1,
-          entities: currentEntities,
-        })
-      }
-
-      // Add the large declaration as its own chunk(s)
-      const { line: declLineStart } = sourceFile.getLineAndCharacterOfPosition(decl.start)
-      const { line: declLineEnd } = sourceFile.getLineAndCharacterOfPosition(decl.end)
-      chunks.push({
-        start: decl.start,
-        end: decl.end,
-        lineStart: declLineStart + 1,
-        lineEnd: declLineEnd + 1,
-        entities: [decl],
-      })
-
-      currentStart = decl.end
+    if (decl.end - currentStart > maxChunkSize && currentEntities.length > 0 && boundary > currentStart) {
+      chunks.push(toChunkRange(sourceFile, currentStart, boundary, currentEntities))
+      currentStart = boundary
       currentEntities = []
     }
-    else {
-      currentEntities.push(decl)
-    }
+    currentEntities.push(decl)
   }
 
-  // Flush remaining
-  if (currentEntities.length > 0) {
-    const lastEntity = currentEntities.at(-1)!
-    const { line: lineStart } = sourceFile.getLineAndCharacterOfPosition(currentStart)
-    const { line: lineEnd } = sourceFile.getLineAndCharacterOfPosition(lastEntity.end)
-    chunks.push({
-      start: currentStart,
-      end: lastEntity.end,
-      lineStart: lineStart + 1,
-      lineEnd: lineEnd + 1,
-      entities: currentEntities,
-    })
-  }
+  if (currentEntities.length > 0)
+    chunks.push(toChunkRange(sourceFile, currentStart, content.length, currentEntities))
 
   // If no chunks created, return entire content
   if (chunks.length === 0) {

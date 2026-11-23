@@ -60,4 +60,37 @@ export function longFunction() {
     // Should produce multiple chunks due to small maxChunkSize
     expect(chunks.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('keeps comments, keywords and trailing statements at chunk boundaries', async () => {
+    const code = `export function alpha() {
+  return 1
+}
+
+/** Beta doc comment */
+export function beta() {
+  return 2
+}
+
+export const GAMMA = 3
+
+registerPlugin('trailing statement')
+`
+    const chunks = await codeChunker({ maxChunkSize: 40 })(code, { id: 'src/a.ts' })
+
+    expect(chunks.map(c => c.text)).toEqual([
+      'export function alpha() {\n  return 1\n}',
+      '/** Beta doc comment */\nexport function beta() {\n  return 2\n}',
+      'export const GAMMA = 3\n\nregisterPlugin(\'trailing statement\')',
+    ])
+    expect(chunks.map(c => c.lineRange)).toEqual([[1, 3], [5, 8], [10, 12]])
+  })
+
+  it('covers every line when declarations share one statement', async () => {
+    const methods = Array.from({ length: 30 }, (_, i) => `  /** doc ${i} */\n  method${i}(raw) { return raw + '${i}' },`)
+    const code = `module.exports = {\n${methods.join('\n')}\n}\nconsole.log('tail')\n`
+    const chunks = await codeChunker({ maxChunkSize: 200 })(code, { id: 'bundle.js' })
+
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.map(c => c.text).join('').replace(/\s/g, '')).toBe(code.replace(/\s/g, ''))
+  })
 })
