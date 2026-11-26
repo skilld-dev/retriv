@@ -45,12 +45,10 @@ const schema = s.object({ content: s.hybrid() })
  *
  * @example
  * ```ts
+ * import { Redis } from '@upstash/redis'
  * import { upstashRedis } from 'retriv/db/upstash-redis'
  *
- * const db = await upstashRedis({
- *   url: process.env.UPSTASH_REDIS_REST_URL,
- *   token: process.env.UPSTASH_REDIS_REST_TOKEN,
- * })
+ * const db = await upstashRedis({ redis: Redis.fromEnv() })
  * ```
  */
 export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<SearchProvider> {
