@@ -43,7 +43,7 @@ const drivers: DriverConfig[] = [
   },
   {
     name: 'upstash-redis',
-    factory: () => upstashRedis({ url: UPSTASH_REDIS_REST_URL, token: UPSTASH_REDIS_REST_TOKEN, index: 'retriv-e2e' }),
+    factory: () => upstashRedis({ url: UPSTASH_REDIS_REST_URL!, token: UPSTASH_REDIS_REST_TOKEN!, index: 'retriv-e2e' }),
     mode: 'semantic',
     skip: !UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN,
   },

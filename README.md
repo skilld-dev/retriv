@@ -194,14 +194,14 @@ pnpm add @upstash/redis
 ```
 
 ```ts
-import { Redis } from '@upstash/redis'
 import { createRetriv } from 'retriv'
 import upstashRedis from 'retriv/db/upstash-redis'
 
 const search = await createRetriv({
   driver: upstashRedis({
-    redis: Redis.fromEnv(),
-    // index: 'retriv', mode: 'hybrid' | 'semantic' | 'fulltext'
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    // index: 'retriv' (index name and key prefix)
   }),
 })
 ```

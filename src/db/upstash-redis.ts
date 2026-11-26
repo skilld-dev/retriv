@@ -3,25 +3,13 @@ import { Redis, s } from '@upstash/redis'
 import { matchesFilter } from '../filter'
 import { extractSnippet } from '../utils/extract-snippet'
 
-export type UpstashRedisSearchMode = 'hybrid' | 'semantic' | 'fulltext'
-
 export interface UpstashRedisConfig extends BaseDriverConfig {
-  /** Upstash Redis REST URL (defaults to `Redis.fromEnv()` when url, token and redis are omitted) */
-  url?: string
+  /** Upstash Redis REST URL */
+  url: string
   /** Upstash Redis REST token */
-  token?: string
-  /** Existing `@upstash/redis` client, instead of url/token */
-  redis?: Redis
-  /** Redis Search index name (default: `retriv`) */
+  token: string
+  /** Redis Search index name, also the key prefix (default: `retriv`) */
   index?: string
-  /** Key prefix for stored documents (default: `<index>:`) */
-  prefix?: string
-  /**
-   * - `hybrid` (default): BM25 and semantic search fused with RRF, server-side
-   * - `semantic`: semantic search only
-   * - `fulltext`: BM25 only
-   */
-  mode?: UpstashRedisSearchMode
 }
 
 interface StoredDocument {
@@ -29,45 +17,42 @@ interface StoredDocument {
   metadata?: Record<string, any>
 }
 
-/** `SEARCH.QUERY` accepts LIMIT 1..1000 */
-const MAX_LIMIT = 1000
-const RRF_RANK_CONSTANT = 60
-/** Best possible RRF score: rank 1 in both retrievers */
-const RRF_MAX_SCORE = 2 / (RRF_RANK_CONSTANT + 1)
 const WRITE_BATCH_SIZE = 100
-
-const schema = s.object({ content: s.hybrid() })
 
 /**
  * Create an Upstash Redis Search provider
- * Hybrid: BM25 + semantic search in one Upstash Redis database.
- * Embeddings are created server-side (no local embedding needed).
+ * Hybrid: BM25 + semantic search fused server-side (no local embedding needed)
  *
  * @example
  * ```ts
- * import { Redis } from '@upstash/redis'
  * import { upstashRedis } from 'retriv/db/upstash-redis'
  *
- * const db = await upstashRedis({ redis: Redis.fromEnv() })
+ * const db = await upstashRedis({
+ *   url: process.env.UPSTASH_REDIS_REST_URL,
+ *   token: process.env.UPSTASH_REDIS_REST_TOKEN,
+ * })
  * ```
  */
-export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<SearchProvider> {
-  const { url, token, mode = 'hybrid' } = config
+export async function upstashRedis(config: UpstashRedisConfig): Promise<SearchProvider> {
+  const { url, token } = config
 
-  if (!config.redis && (url || token) && !(url && token)) {
-    throw new Error('[upstash-redis] url and token must be provided together')
+  if (!url) {
+    throw new Error('[upstash-redis] url is required')
   }
 
-  const redis = config.redis ?? (url && token ? new Redis({ url, token }) : Redis.fromEnv())
-  const indexName = config.index || 'retriv'
-  const prefix = config.prefix || `${indexName}:`
+  if (!token) {
+    throw new Error('[upstash-redis] token is required')
+  }
 
-  // Idempotent: keeps an identical existing index
+  const redis = new Redis({ url, token })
+  const indexName = config.index || 'retriv'
+  const prefix = `${indexName}:`
+
   const index = await redis.search.createIndex({
     name: indexName,
     dataType: 'json',
     prefix,
-    schema,
+    schema: s.object({ content: s.hybrid() }),
     existsOk: true,
   })
 
@@ -75,28 +60,11 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
     const keys: string[] = []
     let cursor = '0'
     do {
-      const [next, page] = await redis.scan(cursor, { match: `${prefix}*`, count: 1000, type: 'json' })
+      const [next, page] = await redis.scan(cursor, { match: `${prefix}*`, count: 1000 })
       keys.push(...page)
       cursor = String(next)
     } while (cursor !== '0')
     return keys
-  }
-
-  function buildFilter(query: string) {
-    const ann = { $ann: { field: 'content' as const, query } }
-    if (mode === 'semantic')
-      return ann
-    if (mode === 'fulltext')
-      return { content: query }
-    return { $rrf: { retrievers: [{ content: query }, ann], rankConstant: RRF_RANK_CONSTANT } }
-  }
-
-  function normalizeScore(score: number): number {
-    if (mode === 'hybrid')
-      score = score / RRF_MAX_SCORE
-    else if (mode === 'fulltext')
-      score = score / (1 + score) // BM25 is unbounded
-    return Math.max(0, Math.min(1, score))
   }
 
   return {
@@ -109,20 +77,16 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
       onProgress?.({ phase: 'storing', current: 0, total: docs.length })
 
       for (let i = 0; i < docs.length; i += WRITE_BATCH_SIZE) {
-        const batch = docs.slice(i, i + WRITE_BATCH_SIZE)
         const pipeline = redis.pipeline()
-        for (const doc of batch) {
-          const stored: Record<string, unknown> = { content: doc.content }
-          if (doc.metadata)
-            stored.metadata = doc.metadata
-          pipeline.json.set(`${prefix}${doc.id}`, '$', stored)
-        }
+        for (const doc of docs.slice(i, i + WRITE_BATCH_SIZE))
+          pipeline.json.set(`${prefix}${doc.id}`, '$', { content: doc.content, metadata: doc.metadata })
         await pipeline.exec()
-        onProgress?.({ phase: 'storing', current: i + batch.length, total: docs.length })
       }
 
       // Writes are indexed asynchronously; make them searchable before returning
       await index.waitIndexing()
+
+      onProgress?.({ phase: 'storing', current: docs.length, total: docs.length })
 
       return { count: docs.length }
     },
@@ -132,9 +96,10 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
       if (!query.trim())
         return []
 
-      const fetchLimit = Math.min(MAX_LIMIT, filter ? limit * 4 : limit)
+      const fetchLimit = filter ? limit * 4 : limit
+
       const results = await index.query({
-        filter: buildFilter(query),
+        filter: { $rrf: { retrievers: [{ content: query }, { $ann: { field: 'content', query } }] } },
         limit: fetchLimit,
       })
 
@@ -142,7 +107,7 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
         const data = r.data as StoredDocument | undefined
         const result: SearchResult = {
           id: r.key.slice(prefix.length),
-          score: normalizeScore(r.score),
+          score: Math.max(0, Math.min(1, r.score)),
         }
 
         if (returnContent && data?.content) {
@@ -168,10 +133,10 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
     },
 
     async remove(ids: string[]) {
-      if (ids.length === 0)
-        return { count: 0 }
-      await redis.del(...ids.map(id => `${prefix}${id}`))
-      await index.waitIndexing()
+      if (ids.length > 0) {
+        await redis.del(...ids.map(id => `${prefix}${id}`))
+        await index.waitIndexing()
+      }
       return { count: ids.length }
     },
 
@@ -181,7 +146,6 @@ export async function upstashRedis(config: UpstashRedisConfig = {}): Promise<Sea
     },
 
     async clear() {
-      // Deleting the documents removes them from the index; the index itself is kept
       const keys = await scanKeys()
       for (let i = 0; i < keys.length; i += 1000)
         await redis.del(...keys.slice(i, i + 1000))

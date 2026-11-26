@@ -11,7 +11,6 @@ pnpm test            # Run vitest (unit tests)
 pnpm test -- -t "chunks"  # Run single test by name
 pnpm test:e2e        # Run e2e tests (all local drivers)
 PG_URL=postgres://... pnpm test:e2e  # Include pgvector
-UPSTASH_REDIS_REST_URL=... UPSTASH_REDIS_REST_TOKEN=... pnpm test:e2e  # Include upstash-redis
 pnpm test:eval       # Run evaluation tests
 pnpm lint            # ESLint (@antfu/eslint-config)
 pnpm typecheck       # TypeScript check
