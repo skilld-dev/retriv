@@ -39,6 +39,9 @@ catalogs:
     '@types/pg':
       specifier: ^8.21.0
       version: 8.21.0
+    '@upstash/redis':
+      specifier: ^1.41.1
+      version: 1.41.1
     '@upstash/vector':
       specifier: ^1.2.3
       version: 1.2.3
@@ -116,6 +119,9 @@ importers:
       '@types/pg':
         specifier: 'catalog:'
         version: 8.21.0
+      '@upstash/redis':
+        specifier: 'catalog:'
+        version: 1.41.1
       '@upstash/vector':
         specifier: 'catalog:'
         version: 1.2.3
@@ -1368,6 +1374,9 @@ packages:
   '@typescript-eslint/visitor-keys@8.67.0':
     resolution: {integrity: sha512-fkv8dHRDqfGtTHuJeebdrQ7cX6Ad4WAS00rgHh9UGvMycF1mjBfsxry1XsLIFhWZ6Judlh6UdzK+TYlbpCXgnA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@upstash/redis@1.41.1':
+    resolution: {integrity: sha512-HT5ixMRbylOM058GETYbh1DKV0Q5qL5bRf7YpOzpp3VR2YZNoYqsWznPvFWNFQEBTPcGANWoCDvA1+M2f6ub4w==}
 
   '@upstash/vector@1.2.3':
     resolution: {integrity: sha512-yXsWKeuHNYyH72BcSZd3bV5ZD5MybAoTvKxkMaeV2UzuGfNzbHBVh5eO+ysTWTFAf8I9XcOueF4tZfAGjCa4Iw==}
@@ -3751,6 +3760,9 @@ packages:
   unconfig@7.5.0:
     resolution: {integrity: sha512-oi8Qy2JV4D3UQ0PsopR28CzdQ3S/5A1zwsUwp/rosSbfhJ5z7b90bIyTwi/F7hCLD4SGcZVjDzd4XoUQcEanvA==}
 
+  uncrypto@0.1.3:
+    resolution: {integrity: sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q==}
+
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
@@ -5074,6 +5086,10 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.67.0
       eslint-visitor-keys: 5.0.1
+
+  '@upstash/redis@1.41.1':
+    dependencies:
+      uncrypto: 0.1.3
 
   '@upstash/vector@1.2.3': {}
 
@@ -7693,6 +7709,8 @@ snapshots:
       jiti: 2.7.0
       quansync: 1.0.0
       unconfig-core: 7.5.0
+
+  uncrypto@0.1.3: {}
 
   undici-types@6.21.0: {}
 

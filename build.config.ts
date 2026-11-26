@@ -16,6 +16,7 @@ export default defineBuildConfig({
         './src/db/sqlite-fts.ts',
         './src/db/libsql.ts',
         './src/db/upstash.ts',
+        './src/db/upstash-redis.ts',
         './src/db/cloudflare.ts',
         './src/db/pgvector.ts',
         // Embeddings
