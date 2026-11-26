@@ -33,6 +33,7 @@ Requires Node.js >= 22.5 (for `node:sqlite`).
 
 **Hybrid** (src/db/):
 - `sqlite.ts` - FTS5 + sqlite-vec combined, uses node:sqlite (Node 22.5+), RRF fusion
+- `upstash-redis.ts` - Upstash Redis Search, BM25 + semantic fused server-side (text-native, no client embeddings)
 
 **FTS** (src/db/):
 - `sqlite-fts.ts` - SQLite FTS5 with BM25 ranking, uses node:sqlite (Node 22.5+)
@@ -93,7 +94,7 @@ export function openai(options = {}): EmbeddingConfig {
 
 All drivers normalize scores to 0-1 range (higher = better match).
 
-Filter compilation has two SQL modes: `'json'` (SQLite `json_extract`) and `'jsonb'` (PostgreSQL `->>`). In-memory `matchesFilter()` is used by drivers without native SQL filtering (Upstash, Cloudflare) — these over-fetch 4x then filter client-side.
+Filter compilation has two SQL modes: `'json'` (SQLite `json_extract`) and `'jsonb'` (PostgreSQL `->>`). In-memory `matchesFilter()` is used by drivers without native SQL filtering (Upstash, Upstash Redis, Cloudflare) — these over-fetch 4x then filter client-side.
 
 ### Hybrid Search
 

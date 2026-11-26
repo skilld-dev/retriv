@@ -185,6 +185,29 @@ const search = await createRetriv({
 })
 ```
 
+### Serverless Hybrid (Upstash Redis)
+
+`retriv/db/upstash-redis` runs BM25 and semantic search in one [Upstash Redis](https://upstash.com/docs/redis/search/hybrid-search) database and fuses them with RRF server-side. Upstash creates the embeddings, so no `embeddings` config is needed.
+
+```bash
+pnpm add @upstash/redis
+```
+
+```ts
+import { createRetriv } from 'retriv'
+import upstashRedis from 'retriv/db/upstash-redis'
+
+const search = await createRetriv({
+  driver: upstashRedis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    // index: 'retriv' (index name and key prefix)
+  }),
+})
+```
+
+Documents are stored as JSON under `<index>:<id>` and indexed by a Redis Search index that the driver creates if it does not exist. Document text is sent to an OpenAI embedding model by Upstash to create the embeddings.
+
 ## How It Works
 
 ### Chunking
@@ -277,6 +300,7 @@ Multiple keys in a filter are ANDed together.
 | pgvector | Native SQL — JSONB `WHERE` clauses |
 | LibSQL | Native SQL — `json_extract` `WHERE` clauses |
 | Upstash | Post-search filtering (4x over-fetch) |
+| Upstash Redis | Post-search filtering (4x over-fetch) |
 | Cloudflare | Post-search filtering (4x over-fetch) |
 
 ## Drivers
@@ -286,6 +310,7 @@ Multiple keys in a filter are ANDed together.
 | Driver | Import | Peer Dependencies |
 |--------|--------|-------------------|
 | SQLite | `retriv/db/sqlite` | `sqlite-vec` (Node.js >= 22.5) |
+| Upstash Redis | `retriv/db/upstash-redis` | `@upstash/redis` (server-side embeddings) |
 
 ### Vector-Only
 

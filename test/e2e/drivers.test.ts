@@ -4,6 +4,7 @@ import { libsql } from '../../src/db/libsql'
 import { pgvector } from '../../src/db/pgvector'
 import { sqliteFts } from '../../src/db/sqlite-fts'
 import { sqliteVec } from '../../src/db/sqlite-vec'
+import { upstashRedis } from '../../src/db/upstash-redis'
 import { loadNuxtDocs } from './fixtures/nuxt-docs'
 import { embeddings } from './setup/embeddings'
 
@@ -15,6 +16,8 @@ interface DriverConfig {
 }
 
 const PG_URL = process.env.PG_URL
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
 
 const drivers: DriverConfig[] = [
   {
@@ -37,6 +40,12 @@ const drivers: DriverConfig[] = [
     factory: () => pgvector({ url: PG_URL!, embeddings }),
     mode: 'semantic',
     skip: !PG_URL,
+  },
+  {
+    name: 'upstash-redis',
+    factory: () => upstashRedis({ url: UPSTASH_REDIS_REST_URL!, token: UPSTASH_REDIS_REST_TOKEN!, index: 'retriv-e2e' }),
+    mode: 'semantic',
+    skip: !UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN,
   },
 ]
 

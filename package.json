@@ -45,6 +45,10 @@
       "types": "./dist/db/upstash.d.mts",
       "import": "./dist/db/upstash.mjs"
     },
+    "./db/upstash-redis": {
+      "types": "./dist/db/upstash-redis.d.mts",
+      "import": "./dist/db/upstash-redis.mjs"
+    },
     "./db/pgvector": {
       "types": "./dist/db/pgvector.d.mts",
       "import": "./dist/db/pgvector.mjs"
@@ -143,6 +147,7 @@
     "@ai-sdk/openai": "^4.0.0",
     "@huggingface/transformers": "^3.0.0 || ^4.0.0",
     "@libsql/client": "^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0",
+    "@upstash/redis": "^1.41.0",
     "@upstash/vector": "^1.0.0",
     "ai": "^7.0.0",
     "ollama-ai-provider-v2": "^4.0.0",
@@ -167,6 +172,9 @@
       "optional": true
     },
     "@libsql/client": {
+      "optional": true
+    },
+    "@upstash/redis": {
       "optional": true
     },
     "@upstash/vector": {
@@ -200,6 +208,7 @@
     "@libsql/client": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
+    "@upstash/redis": "catalog:",
     "@upstash/vector": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "ai": "catalog:",

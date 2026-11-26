@@ -19,6 +19,7 @@ catalog:
   '@libsql/client': ^0.17.4
   '@types/node': ^26.2.0
   '@types/pg': ^8.21.0
+  '@upstash/redis': ^1.41.1
   '@upstash/vector': ^1.2.3
   '@vitest/coverage-v8': ^4.1.10
   ai: ^7.0.59
